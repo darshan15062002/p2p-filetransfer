@@ -262,7 +262,7 @@ const App = () => {
 
 
   return (
-    <div className=" font-mono min-h-screen flex gap-5 justify-center flex-row items-center bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4">
+    <div className=" font-mono min-h-screen flex gap-5 justify-center flex-col sm:flex-row items-center bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4">
 
 
       <div className="bg-[#FBFFE4]  p-6 rounded-2xl shadow-lg w-full max-w-md flex flex-col items-center gap-4">

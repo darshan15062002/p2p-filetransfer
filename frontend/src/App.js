@@ -1,13 +1,13 @@
-import React, { use, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import background from "../src/assets/bg.jpg"
 import { QRCodeCanvas } from 'qrcode.react';
-
+import { motion } from "framer-motion";
 const App = () => {
   const [progress, setProgress] = useState(0);
   const [file, setFile] = useState(null);
   const [peerId, setPeerId] = useState('');
   console.log(peerId, "-----------------------------------");
-
+  const [isReceiver, setIsReceiver] = useState(false);
   const [receivedChunks, setReceivedChunks] = useState([]);
   const [receivedMetadata, setReceivedMetadata] = useState(null)
   const [myId, setMyId] = useState('');
@@ -92,6 +92,7 @@ const App = () => {
 
     peerConnection.current.onicecandidate = async (event) => {
       console.log("onicecandidate", { type: 'signal', to: peerId, signal: { type: "candidate", candidate: event.candidate } });
+
       socket?.send(JSON.stringify({ type: 'signal', to: peerId, signal: { type: "candidate", candidate: event.candidate } }))
     }
     peerConnection.current.onconnectionstatechange = (event) => {
@@ -146,8 +147,8 @@ const App = () => {
               fileChunks = [];
               fileMetadata = null;
               setReceivedChunks([]);
-              setReceivedMetadata(null);
-              setProgress(0);
+              // setReceivedMetadata(null);
+              // setProgress(0);
             }
           } else {
             // Handle binary chunk
@@ -177,9 +178,13 @@ const App = () => {
   }, [peerConnection.current, peerId, dataChannelRef.current])
 
   useEffect(() => {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const peerIdFromUrl = urlParams.get('peerId');
+    setIsReceiver(!!peerIdFromUrl);
+    setPeerId(peerIdFromUrl);
+
     setTimeout(() => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const peerIdFromUrl = urlParams.get('peerId');
       if (peerIdFromUrl && peerConnection.current && dataChannelRef.current && socket && myId) {
         connectToPeer(peerIdFromUrl);
       }
@@ -191,8 +196,26 @@ const App = () => {
   useEffect(() => {
     let pc = new RTCPeerConnection({
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
+        {
+          urls: 'stun:stun.l.google.com:19302',
+        },
+        {
+          urls: 'stun:stun1.l.google.com:19302',
+        },
+        {
+          urls: 'stun:stun2.l.google.com:19302',
+        },
+        {
+          urls: "turn:relay.metered.ca:80",
+          username: "free",
+          credential: "free"
+        },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "open",
+          credential: "open"
+        }
+      ],
     })
     let dc = pc.createDataChannel('fileTransfer');
     peerConnection.current = pc
@@ -258,83 +281,125 @@ const App = () => {
 
   }, [])
 
+  useEffect(() => {
+    connectionStatus === 'connected' && sendFile()
+  }, [connectionStatus])
+
   const link = `${window.location.origin}/?peerId=${myId}`;
 
 
   return (
-    <div className=" font-mono min-h-screen flex gap-5 justify-center flex-col sm:flex-row items-center bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4">
-
-
-      <div className="bg-[#FBFFE4]  p-6 rounded-2xl shadow-lg w-full max-w-md flex flex-col items-center gap-4">
-
-
-
-
-        {!file ? <div class="flex items-center justify-center w-full">
-          <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-              <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+    <div className="font-sans min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center p-4">
+      <motion.div
+        className="bg-white/90 backdrop-blur-sm text-gray-900 w-full max-w-lg rounded-2xl shadow-2xl p-8 space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {!file && !isReceiver && (
+          <>
+            <h2 className="text-2xl font-bold text-center">Share Files Securely</h2>
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 bg-gray-50/50 rounded-xl cursor-pointer h-52 hover:bg-gray-100 transition-all group">
+              <input type="file" className="hidden" onChange={handleFileSelect} />
+              <svg className="w-12 h-12 text-gray-400 group-hover:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+              <span className="text-center text-gray-600 group-hover:text-gray-800">Drop your file here or click to upload</span>
+            </label>
+          </>
+        )}
+
+        {file && !isReceiver && (
+          <>
+            <h3 className="text-xl font-semibold text-center">Ready to Share: {file.name}</h3>
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full border-2 rounded-lg px-4 py-3 text-sm text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  value={link}
+                  readOnly
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(link);
+                    alert('Link copied!');
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-sm bg-blue-500 text-white px-3 py-1.5 rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  Copy Link
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-gray-600 font-medium">Or scan QR code</p>
+                <div className="p-2 bg-white rounded-lg shadow-md">
+                  <QRCodeCanvas value={link} size={160} />
+                </div>
+              </div>
+
+              <div className="text-center p-3 rounded-lg bg-gray-50">
+                {connectionStatus === 'connected' ? (
+                  <p className="text-green-600 font-semibold flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Connected to receiver
+                  </p>
+                ) : (
+                  <p className="text-yellow-600 flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                    Waiting for connection...
+                  </p>
+                )}
+              </div>
+
+              {progress > 0 && (
+                <div className="space-y-2">
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                    <div
+                      className="bg-blue-500 h-4 rounded-full transition-all duration-300 relative"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <span className="absolute right-0 -top-6 text-sm">{Math.round(progress)}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <input id="dropzone-file" type="file" class="hidden" onChange={handleFileSelect} />
-          </label>
-        </div> : <div className='h-80 w-80 flex justify-center items-center border-4 bg-white border-[#3D8D7A] rounded-full'><h1 className='text-black font-sans font-bold' >{file.name}</h1></div>}
-        {connectionStatus === "connected" && <p className='text-green-400'>connected</p>}
+          </>
+        )}
 
-        <button disabled={connectionStatus !== 'connected'} className="bg-[#3D8D7A] hover:bg-[#459885] text-white font-bold py-2 px-4 rounded w-full" onClick={sendFile} disabled={!file}>Send File</button>
-        {progress > 0 && <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
-          <div className="bg-blue-600 h-4" style={{ width: `${progress}%` }}></div>
-        </div>}
+        {isReceiver && (
+          <>
+            <h3 className="text-xl font-semibold text-center">Receiving File</h3>
+            {receivedMetadata ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-600">File: {receivedMetadata.name}</p>
+                  <p className="text-gray-600">Size: {Math.round(receivedMetadata.size / 1024)} KB</p>
+                </div>
 
-
-      </div>
-
-      <div className="bg-[#FBFFE4]  p-6 rounded-2xl shadow-lg w-full max-w-md flex flex-col items-center gap-4">
-        <p className='text-black font-mono font-semibold'>Share this link with your peer:</p>
-        <div className="w-4/5 md:w-[300px] bg-[hsl(0,0%,100%)] p-[15px] rounded-[20px]">
-          <div class="w-full max-w-[16rem]">
-            <div class="relative">
-              <label for={link} class="sr-only">Label</label>
-              <input id={link} type="text" class="col-span-6 bg-gray-50 border border-gray-300 text-gray-500 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-4 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500" value={link} disabled readonly />
-              <button data-copy-to-clipboard-target={link} class="absolute end-2.5 top-1/2 -translate-y-1/2 text-gray-900 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700 rounded-lg py-2 px-2.5 inline-flex items-center justify-center bg-white border-gray-200 border h-8">
-                <span id="default-message" onClick={() => navigator.clipboard.writeText(link)}>
-                  <span class="inline-flex items-center">
-                    <svg class="w-3 h-3 me-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 18 20">
-                      <path d="M16 1h-3.278A1.992 1.992 0 0 0 11 0H7a1.993 1.993 0 0 0-1.722 1H2a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2Zm-3 14H5a1 1 0 0 1 0-2h8a1 1 0 0 1 0 2Zm0-4H5a1 1 0 0 1 0-2h8a1 1 0 1 1 0 2Zm0-5H5a1 1 0 0 1 0-2h2V2h4v2h2a1 1 0 1 1 0 2Z" />
-                    </svg>
-                    <span class="text-xs font-semibold">Copy</span>
-                  </span>
-                </span>
-                <span id="success-message" class="hidden">
-                  <span class="inline-flex items-center">
-                    <svg class="w-3 h-3 text-blue-700 dark:text-blue-500 me-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
-                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5" />
-                    </svg>
-                    <span class="text-xs font-semibold text-blue-700 dark:text-blue-500">Copied</span>
-                  </span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <p className='text-black font-mono font-semibold'>Or Scan QR code:</p>
-        <div className="w-4/5 md:w-[300px] bg-[hsl(0,0%,100%)] p-[15px] rounded-[20px]">
-          <QRCodeCanvas value={link} size={150} bgColor="#fff" fgColor="#000" alt="qr-code" className="w-full rounded-[10px]" loading="lazy" />
-
-
-        </div>
-
-
-      </div>
-
-
-
-
-
+                {progress > 0 && (
+                  <div className="space-y-2">
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className="bg-green-500 h-4 rounded-full transition-all duration-300 relative"
+                        style={{ width: `${progress}%` }}
+                      >
+                        <span className="absolute right-0 -top-6 text-sm">{Math.round(progress)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-8">
+                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-600">Waiting for sender to share file...</p>
+              </div>
+            )}
+          </>
+        )}
+      </motion.div>
     </div>
   );
 };

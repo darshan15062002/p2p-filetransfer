@@ -16,10 +16,39 @@ const App = () => {
   const peerConnection = useRef(null);
   const dataChannelRef = useRef(null);
 
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      handleFileSelect({ target: { files: [droppedFile] } });
+    }
+  };
+
+
   const handleFileSelect = (e) => {
-    e.preventDefault()
-    setFile(e.target.files[0])
-  }
+    e.preventDefault?.(); // This line won't break if `e` is a mock
+    const file = e.target?.files?.[0];
+    if (file) {
+      setFile(file);
+    }
+  };
 
   const connectToPeer = async (peerId) => {
     try {
@@ -289,115 +318,148 @@ const App = () => {
 
 
   return (
-    <div className="font-sans min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0B1120] bg-gradient-to-br from-[#0B1120] via-[#1E293B] to-[#0B1120] text-white flex items-center justify-center p-6">
       <motion.div
-        className="bg-white/90 backdrop-blur-sm text-gray-900 w-full max-w-lg rounded-2xl shadow-2xl p-8 space-y-6"
+        className="backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 w-full max-w-xl rounded-2xl shadow-2xl p-8 border border-white/10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
       >
         {!file && !isReceiver && (
           <>
-            <h2 className="text-2xl font-bold text-center">Share Files Securely</h2>
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-400 bg-gray-50/50 rounded-xl cursor-pointer h-52 hover:bg-gray-100 transition-all group">
+            <h2 className="text-4xl font-bold text-center bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent mb-8">
+              Secure File Transfer
+            </h2>
+
+            <label
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`group relative flex flex-col items-center justify-center border-2 border-dashed ${isDragActive ? "border-blue-400/50" : "border-white/20"
+                } bg-gradient-to-br from-white/5 to-transparent rounded-xl cursor-pointer h-64 transition-all duration-300`}
+            >
               <input type="file" className="hidden" onChange={handleFileSelect} />
-              <svg className="w-12 h-12 text-gray-400 group-hover:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <span className="text-center text-gray-600 group-hover:text-gray-800">Drop your file here or click to upload</span>
+              <div className="absolute inset-0 bg-blue-500/5 rounded-xl group-hover:bg-blue-500/10 transition-all duration-300"></div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex flex-col items-center space-y-4 z-10"
+              >
+                <svg
+                  className="w-16 h-16 text-blue-400 group-hover:text-blue-500 transition-colors duration-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                <span className="text-lg text-white/70 group-hover:text-white font-medium">
+                  Drop your file here or click to browse
+                </span>
+              </motion.div>
             </label>
           </>
         )}
-
         {file && !isReceiver && (
-          <>
-            <h3 className="text-xl font-semibold text-center">Ready to Share: {file.name}</h3>
-            <div className="space-y-4">
-              <div className="relative">
+          <div className="space-y-6">
+            <h3 className="text-2xl font-semibold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{file.name}</h3>
+            <div className="space-y-6">
+              <div className="relative group">
                 <input
                   type="text"
-                  className="w-full border-2 rounded-lg px-4 py-3 text-sm text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3.5 text-white focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none"
                   value={link}
                   readOnly
                 />
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => {
                     navigator.clipboard.writeText(link);
                     alert('Link copied!');
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-sm bg-blue-500 text-white px-3 py-1.5 rounded-md hover:bg-blue-600 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-2 rounded-md font-medium transition-all duration-300"
                 >
                   Copy Link
-                </button>
+                </motion.button>
               </div>
 
-              <div className="flex flex-col items-center gap-2">
-                <p className="text-gray-600 font-medium">Or scan QR code</p>
-                <div className="p-2 bg-white rounded-lg shadow-md">
-                  <QRCodeCanvas value={link} size={160} />
-                </div>
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-white/80 font-medium">Scan QR Code to Connect</p>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-4 bg-white rounded-lg shadow-xl"
+                >
+                  <QRCodeCanvas value={link} size={180} />
+                </motion.div>
               </div>
 
-              <div className="text-center p-3 rounded-lg bg-gray-50">
+              <div className="bg-gradient-to-r from-white/10 to-white/5 rounded-lg p-5">
                 {connectionStatus === 'connected' ? (
-                  <p className="text-green-600 font-semibold flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Connected to receiver
+                  <p className="text-emerald-400 font-medium flex items-center justify-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    Connected and Ready
                   </p>
                 ) : (
-                  <p className="text-yellow-600 flex items-center justify-center gap-2">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-                    Waiting for connection...
+                  <p className="text-amber-400 flex items-center justify-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-pulse"></span>
+                    Awaiting Connection...
                   </p>
                 )}
               </div>
 
               {progress > 0 && (
                 <div className="space-y-2">
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                    <div
-                      className="bg-blue-500 h-4 rounded-full transition-all duration-300 relative"
-                      style={{ width: `${progress}%` }}
-                    >
-                      <span className="absolute right-0 -top-6 text-sm">{Math.round(progress)}%</span>
-                    </div>
+                  <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                    />
                   </div>
+                  <p className="text-right text-sm text-white/70 font-medium">{Math.round(progress)}% Complete</p>
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         {isReceiver && (
-          <>
-            <h3 className="text-xl font-semibold text-center">Receiving File</h3>
+          <div className="space-y-6">
+            <h3 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Receiving File
+            </h3>
             {receivedMetadata ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-600">File: {receivedMetadata.name}</p>
-                  <p className="text-gray-600">Size: {Math.round(receivedMetadata.size / 1024)} KB</p>
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-white/10 to-white/5 rounded-lg p-6 space-y-3">
+                  <p className="text-white/80">File: <span className="text-white font-medium">{receivedMetadata.name}</span></p>
+                  <p className="text-white/80">Size: <span className="text-white font-medium">{(receivedMetadata.size / (1024 * 1024)).toFixed(2)} MB</span></p>
                 </div>
 
                 {progress > 0 && (
                   <div className="space-y-2">
-                    <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div
-                        className="bg-green-500 h-4 rounded-full transition-all duration-300 relative"
-                        style={{ width: `${progress}%` }}
-                      >
-                        <span className="absolute right-0 -top-6 text-sm">{Math.round(progress)}%</span>
-                      </div>
+                    <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        className="h-full bg-gradient-to-r from-emerald-400 to-teal-500"
+                      />
                     </div>
+                    <p className="text-right text-sm text-white/70 font-medium">{Math.round(progress)}% Complete</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-center p-8">
-                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-gray-600">Waiting for sender to share file...</p>
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-white/70 font-medium">Waiting for sender to connect...</p>
               </div>
             )}
-          </>
+          </div>
         )}
       </motion.div>
     </div>

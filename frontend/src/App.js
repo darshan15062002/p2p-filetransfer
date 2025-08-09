@@ -243,7 +243,8 @@ const App = () => {
           urls: "turn:openrelay.metered.ca:80",
           username: "open",
           credential: "open"
-        }
+        },
+        { urls: 'turn:relay1.expressturn.com:3480', username: '000000002069862758', credential: 'GBEdGy0Ha0BrIih3gt1GcwZiegk=' }
       ],
     })
     let dc = pc.createDataChannel('fileTransfer');
